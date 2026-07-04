@@ -112,7 +112,7 @@ static void spawn_terminal(irisWM* wm) {
     pid_t pid = fork();
 
     if (0 == pid) {
-        execvp("xterm", (char *[]){"xterm", NULL});
+        execvp("xterm", (char *[]){"xterm", "-bg", "black", "-fg", "white", NULL});
         exit(1);
     }
 
