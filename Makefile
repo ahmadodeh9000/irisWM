@@ -1,17 +1,9 @@
-CC = gcc
-CFLAGS = -Wall -O2
-LDFLAGS = -lX11
-
-SRC = src/*.c
-OUT = irisWM
-
 all:
-	$(CC) $(CFLAGS) $(SRC) -o $(OUT) $(LDFLAGS)
+	$(MAKE) -C wm
+	$(MAKE) -C bar
 
 clean:
-	rm -f $(OUT)
+	$(MAKE) -C wm clean
+	$(MAKE) -C bar clean
 
-run: all
-	./$(OUT)
-
-.PHONY: all clean run
+.PHONY: all clean

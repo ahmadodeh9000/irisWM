@@ -1,4 +1,7 @@
+
 #include "iriswm.h"
+#include "../../shared/shared.h" 
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -67,20 +70,22 @@ void focus_window(irisWM* wm, int32_t index) {
 static void tile(irisWM* wm) {
     if (wm->window_count == 0) return;
 
+    int32_t usable_height = wm->screen_height - BAR_HEIGHT;
+
     if (wm->window_count == 1) {
-        XMoveResizeWindow(wm->dpy,wm->windows[0],0,0,wm->screen_width,wm->screen_height);
+        XMoveResizeWindow(wm->dpy,wm->windows[0],0,BAR_HEIGHT,wm->screen_width,usable_height);
         return;
     }
 
     int32_t master_width = (wm->screen_width * 60) / 100;
     int32_t stack_width   = wm->screen_width - master_width;
     int32_t stack_count   = wm->window_count - 1;
-    int32_t stack_height  = wm->screen_height / stack_count;
+    int32_t stack_height  = usable_height / stack_count;
 
 
-    XMoveResizeWindow(wm->dpy,wm->windows[0],0,0,master_width,wm->screen_height);
+    XMoveResizeWindow(wm->dpy,wm->windows[0],0,BAR_HEIGHT,master_width,usable_height);
         for (int32_t i = 1; i < wm->window_count; i++) {
-        int32_t y = (i - 1) * stack_height;
+        int32_t y = BAR_HEIGHT + (i - 1) * stack_height;
         XMoveResizeWindow(wm->dpy, wm->windows[i], master_width, y, stack_width, stack_height);
     }
 
@@ -168,8 +173,8 @@ void setup_keybindings(irisWM* wm) {
     } keys[] = {
         { XK_Return, spawn_terminal },  // windows + enter
         { XK_q,      close_focused },   // windows + q
-        { XK_j,      focus_next },      // windows + j
-        { XK_k,      focus_prev },      // windows + k
+        { XK_k,      focus_next },      // windows + j
+        { XK_j,      focus_prev },      // windows + k
         { XK_a,      focus_first},      // windows + a
         { XK_z,      focus_last},       // windows + z
     };
@@ -197,8 +202,8 @@ void on_key_press(irisWM* wm,XKeyEvent* kev) {
     switch (ks) {
         case XK_Return: spawn_terminal(wm);     break;
         case XK_q:      close_focused(wm);      break;
-        case XK_j:      focus_next(wm);         break;
-        case XK_k:      focus_prev(wm);         break;
+        case XK_k:      focus_next(wm);         break;
+        case XK_j:      focus_prev(wm);         break;
         case XK_a:      focus_first(wm);        break;
         case XK_z:      focus_last(wm);         break;
     }
