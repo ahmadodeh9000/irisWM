@@ -171,7 +171,7 @@ void setup_keybindings(irisWM* wm) {
         { XK_j,      focus_next },      // windows + j
         { XK_k,      focus_prev },      // windows + k
         { XK_a,      focus_first},      // windows + a
-        { XK_z,      focus_last},      // windows + z
+        { XK_z,      focus_last},       // windows + z
     };
 
     int32_t nkeys = sizeof(keys) / sizeof(keys[0]);
