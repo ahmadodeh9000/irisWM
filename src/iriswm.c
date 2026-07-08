@@ -104,6 +104,8 @@ static void tile(irisWM* wm) {
 static void spawn_terminal(irisWM* wm);
 static void focus_next(irisWM* wm);
 static void focus_prev(irisWM* wm);
+static void focus_first(irisWM* wm);
+static void focus_last(irisWM* wm);
 
 
 static void spawn_terminal(irisWM* wm) {
@@ -144,6 +146,18 @@ static void focus_prev(irisWM* wm) {
 }
 
 
+static void focus_first(irisWM* wm) {
+    if (0 == wm->window_count) return;
+
+    focus_window(wm,0);
+}
+
+static void focus_last(irisWM* wm) {
+    if (0 == wm->window_count) return;
+
+    focus_window(wm,wm->window_count - 1);
+}
+
 
 void setup_keybindings(irisWM* wm) {
     XUngrabKey(wm->dpy,AnyKey,AnyModifier,wm->root);
@@ -156,6 +170,8 @@ void setup_keybindings(irisWM* wm) {
         { XK_q,      close_focused },   // windows + q
         { XK_j,      focus_next },      // windows + j
         { XK_k,      focus_prev },      // windows + k
+        { XK_a,      focus_first},      // windows + a
+        { XK_z,      focus_last},      // windows + z
     };
 
     int32_t nkeys = sizeof(keys) / sizeof(keys[0]);
@@ -179,10 +195,12 @@ void setup_keybindings(irisWM* wm) {
 void on_key_press(irisWM* wm,XKeyEvent* kev) {
     KeySym ks = XLookupKeysym(kev,0);
     switch (ks) {
-        case XK_Return: spawn_terminal(wm);   break;
-        case XK_q:      close_focused(wm);  break;
-        case XK_j:      focus_next(wm);     break;
-        case XK_k:      focus_prev(wm);     break;
+        case XK_Return: spawn_terminal(wm);     break;
+        case XK_q:      close_focused(wm);      break;
+        case XK_j:      focus_next(wm);         break;
+        case XK_k:      focus_prev(wm);         break;
+        case XK_a:      focus_first(wm);        break;
+        case XK_z:      focus_last(wm);         break;
     }
 }
 
