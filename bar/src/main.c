@@ -28,10 +28,7 @@ int main() {
 
     }
 
-    XftDrawDestroy(ibar.xft_draw);
-    XftFontClose(ibar.dpy, ibar.font);
-    XFreePixmap(ibar.dpy, ibar.pixmap);
-    XCloseDisplay(ibar.dpy);
+    clean_ibar(&ibar);
 
     return 0;
 

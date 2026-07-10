@@ -20,12 +20,17 @@
 *  *   *    *   *   *   *   *   *   *   */
 
 
+#define WIFI_MAX_QUALITY 70
+#define WIFI_BARS 8
+#define RIGHT_PADDING 10
 
-static int32_t get_wifi_quality();
+static int32_t get_wifi_quality(void);
 static int32_t is_wireless_iface(const char *iface);
 static void detect_connection_type(char *type_buf, size_t len);
-static void get_wifi_bar(int32_t quality, char *buf, size_t len); 
-static char* get_username();
+static void get_wifi_bar(int32_t quality, char *buf, size_t len);
+
+
+static const char* get_username(void);
 void get_time_str(char *buf, size_t len);
 void draw_text(irisBar* bar,const char *text, int x, int y);
 
@@ -121,27 +126,27 @@ int get_wifi_quality(void) {
 
 static void get_wifi_bar(int32_t quality, char *buf, size_t len) {
     if (quality < 0)  quality = 0;
-    if (quality > 70) quality = 70;
+    if (quality > WIFI_MAX_QUALITY) quality = WIFI_MAX_QUALITY;
 
-    int filled = (quality * 8 + 35) / 70;
+    int filled = (quality * WIFI_BARS + (WIFI_MAX_QUALITY / 2)) / WIFI_MAX_QUALITY;
 
     // "[########]" = 1 + 8 + 1 + null = 11 bytes minimum
     if (len < 11) return;
 
     buf[0] = '[';
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < WIFI_BARS; i++)
         buf[i + 1] = (i < filled) ? '#' : '*';
-    buf[9] = ']';
-    buf[10] = '\0';
+    buf[WIFI_BARS + 1] = ']';
+    buf[WIFI_BARS + 2] = '\0';
 }
 
 
 
 // get the user name
 
-static char* get_username() {
-    register struct passwd* pw;
-    register uid_t uid;
+static const char* get_username() {
+    struct passwd* pw;
+    uid_t uid;
 
     uid     = getuid();
     pw      = getpwuid(uid);
@@ -180,7 +185,7 @@ void redraw(irisBar* ibar) {
     XFillRectangle(ibar->dpy, ibar->pixmap, ibar->gc, 0, 0, ibar->screen_width, BAR_HEIGHT);
     //XClearWindow(ibar->dpy,ibar->win);
 
-    char conn_buf[64];
+    char conn_buf[364];
     char wifi_buf[16];
     char wifi_display[32];
     char time_buf[64];
@@ -191,7 +196,7 @@ void redraw(irisBar* ibar) {
     int baseline_y = (BAR_HEIGHT + ibar->font->ascent - ibar->font->descent) / 2;
 
     // Left
-    draw_text(ibar,get_username(),0 , baseline_y);
+    draw_text(ibar,ibar->username,0 , baseline_y);
     
     // Center
     int center_x = ibar->screen_width / 2 - 40;
@@ -206,7 +211,7 @@ void redraw(irisBar* ibar) {
     // Right
     XGlyphInfo extents;
     XftTextExtentsUtf8(ibar->dpy, ibar->font, (const FcChar8 *)time_buf, strlen(time_buf), &extents);
-    int time_x = ibar->screen_width - extents.xOff - 10;
+    int time_x = ibar->screen_width - extents.xOff - RIGHT_PADDING;
     draw_text(ibar,time_buf, time_x, baseline_y);
 
     XCopyArea(ibar->dpy, ibar->pixmap, ibar->win, ibar->gc, 0, 0, ibar->screen_width, BAR_HEIGHT, 0, 0);
@@ -228,6 +233,7 @@ void init(irisBar* ibar) {
 
     ibar->screen         = DefaultScreen(ibar->dpy);
     ibar->screen_width   = DisplayWidth(ibar->dpy,ibar->screen);
+    ibar->username       = get_username();
 
     Colormap cmap = DefaultColormap(ibar->dpy, ibar->screen);
     XColor bg;
@@ -280,4 +286,14 @@ void init(irisBar* ibar) {
  
     printf("[irisBar]: initialized, width=%d\n", ibar->screen_width);
 
+}
+
+
+void clean_ibar(irisBar* ibar) {
+    XftDrawDestroy(ibar->xft_draw);
+    XftFontClose(ibar->dpy, ibar->font);
+    XFreePixmap(ibar->dpy, ibar->pixmap);
+    XFreeGC(ibar->dpy,ibar->gc);
+    XDestroyWindow(ibar->dpy,ibar->win);
+    XCloseDisplay(ibar->dpy);
 }

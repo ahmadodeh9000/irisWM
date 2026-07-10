@@ -26,6 +26,8 @@ typedef struct {
 
     GC gc;
     unsigned long bg_pixel;
+
+    const char* username;
     
     Pixmap pixmap;    
 
@@ -33,7 +35,7 @@ typedef struct {
 
 void init(irisBar* ibar);
 void redraw(irisBar* ibar);
-void test();
+void clean_ibar(irisBar* ibar);
 
 
 
