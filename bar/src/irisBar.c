@@ -7,6 +7,9 @@
 #include <time.h>
 #include <pwd.h>
 
+#include <sys/stat.h>
+#include <dirent.h>
+
 
 /*  *   *   *   *   *   *   *   *   *   *
 *                                       *
@@ -19,6 +22,8 @@
 
 
 static int32_t get_wifi_quality();
+static int32_t is_wireless_iface(const char *iface);
+static void detect_connection_type(char *type_buf, size_t len);
 static void get_wifi_bar(int32_t quality, char *buf, size_t len); 
 static char* get_username();
 void get_time_str(char *buf, size_t len);
@@ -31,6 +36,57 @@ void draw_text(irisBar* bar,const char *text, int x, int y) {
 }
 
 
+static int32_t is_wireless_iface(const char *iface) {
+    char path[320];
+    snprintf(path, sizeof(path), "/sys/class/net/%s/wireless", iface);
+
+    struct stat st;
+    if (stat(path, &st) == 0) {
+        return 1;   // wireless subfolder exists -> it's wifi
+    }
+    return 0;       // no wireless folder -> ethernet or other
+}
+
+
+static void detect_connection_type(char *type_buf, size_t len) {
+    DIR *d = opendir("/sys/class/net");
+    if (!d) {
+        snprintf(type_buf, len, "unknown");
+        return;
+    }
+
+    struct dirent *entry;
+    while ((entry = readdir(d)) != NULL) {
+        if (entry->d_name[0] == '.') continue;          // skip . and ..
+        if (strcmp(entry->d_name, "lo") == 0) continue; // skip loopback
+
+        // Check if this interface is "up" (has carrier)
+        char carrier_path[300];
+        snprintf(carrier_path, sizeof(carrier_path), "/sys/class/net/%s/carrier", entry->d_name);
+
+        FILE *fp = fopen(carrier_path, "r");
+        if (!fp) continue;
+
+        char carrier_val[4] = {0};
+        fread(carrier_val, 1, sizeof(carrier_val) - 1, fp);
+        fclose(fp);
+
+        if (carrier_val[0] != '1') continue;  // not connected/up
+
+        // Found an active interface -> check its type
+        if (is_wireless_iface(entry->d_name)) {
+            snprintf(type_buf, len, "wifi (%s)", entry->d_name);
+        } else {
+            snprintf(type_buf, len, "ethernet (%s)", entry->d_name);
+        }
+
+        closedir(d);
+        return;
+    }
+
+    closedir(d);
+    snprintf(type_buf, len, "disconnected");
+}
 
 
 /* wifi */
@@ -124,25 +180,33 @@ void redraw(irisBar* ibar) {
     XFillRectangle(ibar->dpy, ibar->pixmap, ibar->gc, 0, 0, ibar->screen_width, BAR_HEIGHT);
     //XClearWindow(ibar->dpy,ibar->win);
 
+    char conn_buf[64];
     char wifi_buf[16];
     char wifi_display[32];
     char time_buf[64];
 
-    get_wifi_bar(get_wifi_quality(),wifi_buf,sizeof(wifi_buf));
+    detect_connection_type(conn_buf, sizeof(conn_buf));
     get_time_str(time_buf,sizeof(time_buf));
 
     int baseline_y = (BAR_HEIGHT + ibar->font->ascent - ibar->font->descent) / 2;
 
     // Left
-    draw_text(ibar,get_username(), 0, baseline_y);
- 
+    draw_text(ibar,get_username(),0 , baseline_y);
+    
     // Center
-    int wifi_x = ibar->screen_width / 2 - 40;
-    snprintf(wifi_display, sizeof(wifi_display), "wifi: %s", wifi_buf);
-    draw_text(ibar,wifi_display, wifi_x, baseline_y);
+    int center_x = ibar->screen_width / 2 - 40;
+    if (strncmp(conn_buf, "wifi", 4) == 0) {
+        get_wifi_bar(get_wifi_quality(), wifi_buf, sizeof(wifi_buf));
+        snprintf(wifi_display, sizeof(wifi_display), "wifi: %s", wifi_buf);
+        draw_text(ibar, wifi_display, center_x, baseline_y);
+    } else {
+        draw_text(ibar, conn_buf, center_x, baseline_y);  // e.g. "ethernet (enp0s3)" or "disconnected"
+    }
  
     // Right
-    int time_x = ibar->screen_width - 120;
+    XGlyphInfo extents;
+    XftTextExtentsUtf8(ibar->dpy, ibar->font, (const FcChar8 *)time_buf, strlen(time_buf), &extents);
+    int time_x = ibar->screen_width - extents.xOff - 10;
     draw_text(ibar,time_buf, time_x, baseline_y);
 
     XCopyArea(ibar->dpy, ibar->pixmap, ibar->win, ibar->gc, 0, 0, ibar->screen_width, BAR_HEIGHT, 0, 0);
