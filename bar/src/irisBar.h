@@ -9,8 +9,8 @@
 /* constants */
 #define BAR_HEIGHT 24
 #define FONT_NAME  "monospace-10"
-#define BG_COLOR   "#222222"
-#define FG_COLOR   "#ffffff"
+#define BG_COLOR   "#000022"
+#define FG_COLOR   "#ff0e0e"
 
 
 typedef struct {

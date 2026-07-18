@@ -90,7 +90,7 @@ static void detect_connection_type(char *type_buf, size_t len) {
     }
 
     closedir(d);
-    snprintf(type_buf, len, "disconnected");
+    snprintf(type_buf, len, "[ disconnected ]");
 }
 
 
@@ -198,15 +198,7 @@ void redraw(irisBar* ibar) {
     // Left
     draw_text(ibar,ibar->username,0 , baseline_y);
     
-    // Center
-    int center_x = ibar->screen_width / 2 - 40;
-    if (strncmp(conn_buf, "wifi", 4) == 0) {
-        get_wifi_bar(get_wifi_quality(), wifi_buf, sizeof(wifi_buf));
-        snprintf(wifi_display, sizeof(wifi_display), "wifi: %s", wifi_buf);
-        draw_text(ibar, wifi_display, center_x, baseline_y);
-    } else {
-        draw_text(ibar, conn_buf, center_x, baseline_y);  // e.g. "ethernet (enp0s3)" or "disconnected"
-    }
+
  
     // Right
     XGlyphInfo extents;
@@ -214,8 +206,21 @@ void redraw(irisBar* ibar) {
     int time_x = ibar->screen_width - extents.xOff - RIGHT_PADDING;
     draw_text(ibar,time_buf, time_x, baseline_y);
 
+
+        // Center
+    int center_x = time_x - 100;
+    printf("debug : %d\n", time_x);
+    if (strncmp(conn_buf, "wifi", 4) == 0) {
+        get_wifi_bar(get_wifi_quality(), wifi_buf, sizeof(wifi_buf));
+        snprintf(wifi_display, sizeof(wifi_display), "wifi: %s", wifi_buf);
+        draw_text(ibar, wifi_display, center_x, baseline_y);
+    } else {
+        draw_text(ibar, conn_buf, center_x, baseline_y);  // e.g. "ethernet (enp0s3)" or "disconnected"
+    }
+
+
     XCopyArea(ibar->dpy, ibar->pixmap, ibar->win, ibar->gc, 0, 0, ibar->screen_width, BAR_HEIGHT, 0, 0);
- 
+
     XFlush(ibar->dpy);
 
 
